@@ -25,7 +25,7 @@
 - **Next.js como frontend** (catálogo y admin) y **Express como API**. Express concentra toda la lógica de negocio, el acceso a datos y las integraciones. Next.js no accede a la base de datos.
 - **Mismo dominio para web y API**: Next.js reescribe `/api/*` hacia Express (`rewrites` en `next.config.js`). Así la cookie de sesión es de primera parte y se evita configurar CORS con cookies entre dominios.
 - **JavaScript** en ambos proyectos (coherente con el stack ya usado). Validación de datos con Zod.
-- **Acceso a datos:** _decisión pendiente_ entre Prisma y `mysql2` con SQL escrito a mano. El modelo de datos de este documento vale para cualquiera de las dos opciones. Toda consulta vive en la capa `repositories/`, así el resto del código no depende de esa decisión.
+- **Acceso a datos:** Prisma ORM 7 con el adapter `@prisma/adapter-mariadb` (compatible con MySQL). El esquema vive en `apps/api/prisma/schema.prisma` y las migraciones en `apps/api/prisma/migrations/`. Toda consulta vive en la capa `repositories/`. Explicación completa en el anexo `guia-prisma.md`.
 
 ## 2. Estructura del repositorio
 
@@ -53,11 +53,12 @@ entrelineas/
 │   │   ├── context/              # Carrito (client)
 │   │   └── lib/                  # fetch a la API, formato de precios
 │   └── api/                      # Express
+│       ├── prisma/               # schema.prisma y migraciones
 │       └── src/
 │           ├── routes/           # Definición de endpoints
 │           ├── controllers/      # Leen request, llaman servicios, responden
 │           ├── services/         # Lógica de negocio (caja, pagos, stock)
-│           ├── repositories/     # Acceso a la base (Prisma o SQL)
+│           ├── repositories/     # Acceso a la base (único lugar que usa Prisma)
 │           ├── integrations/     # mercadopago, cloudinary, libros, turnstile
 │           ├── middlewares/      # auth, roles, rate limit, errores
 │           ├── validators/       # Esquemas Zod

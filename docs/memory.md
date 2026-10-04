@@ -31,11 +31,13 @@ Contexto acumulado para retomar el trabajo (persona o asistente de IA). Leer al 
 | QR y Point de Mercado Pago | MVP: registro manual. Etapa 2: integración | Reutilizar la lógica del webhook después |
 | Diseño | Paleta papel, tinta, verde tela y ocre; Literata + Public Sans; catálogo como estante | Identidad propia de librería |
 | Importación desde Excel | En el MVP, con vista previa obligatoria y modo explícito (crear, actualizar o ambos) | La librería ya tiene su catálogo en Excel; nada se pisa sin que el admin lo vea |
+| Acceso a datos | Prisma ORM 7.10 (estable) con `@prisma/adapter-mariadb` | Migraciones versionadas, transacciones simples y consultas seguras. La etiqueta `latest` de npm apunta a Prisma 8 en versión candidata (rc), por eso se fija la 7.10. Guía completa en `guia-prisma.md` |
+| Repositorio y ramas | GitHub desde el inicio. `main` siempre estable; una rama por fase (`feat/fase-0-preparacion`, …) que entra a `main` por pull request | Historial prolijo para el portfolio; Vercel publica `main` y genera vistas previas de cada rama |
 | Librería de Excel | ExcelJS (`.xlsx` y `.csv`); los `.xls` viejos se guardan como `.xlsx` antes de subir | Mantenida y disponible en npm; el paquete `xlsx` de npm quedó desactualizado |
 
 ## Decisiones pendientes
 
-- **Acceso a datos: Prisma o `mysql2` con SQL.** Definir antes de la fase 1.
+- **Versión de Node.js:** Node 20 (instalado) quedó sin soporte en abril de 2026, y el cliente de Prisma 7 se genera en TypeScript, que Node 20 no ejecuta directamente. Propuesta: pasar a Node 24 LTS. Confirmar al instalar dependencias.
 - **Formato del Excel de la librería:** qué columnas tiene, cómo vienen los precios y si incluye stock. Ajustar el mapeo automático cuando se conozca.
 
 ## Notas técnicas para recordar
@@ -48,8 +50,11 @@ Contexto acumulado para retomar el trabajo (persona o asistente de IA). Leer al 
 ## Estado
 
 - Fase actual: **0 — Preparación**.
-- Última actualización: planificación inicial del proyecto y documentación.
+- Última actualización: 2026-10-04 — documentos movidos a `docs/`, repositorio Git creado, decisión de Prisma y guía. Instalación de dependencias frenada por falta de espacio en disco.
 
 ## Registro de sesiones
 
 <!-- Agregar una línea por sesión: fecha — qué se hizo — qué quedó pendiente -->
+
+- 2026-10-04 — Lectura de documentos, PDF de documentación, `bitacora.md` — decidir acceso a datos.
+- 2026-10-04 — Prisma elegido, `guia-prisma.md`, Git con rama `feat/fase-0-preparacion`, Next.js creado en `apps/web` — liberar disco, instalar dependencias, contraseña de MySQL, repositorio en GitHub.

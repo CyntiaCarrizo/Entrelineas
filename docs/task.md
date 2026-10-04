@@ -3,7 +3,9 @@
 Marcar con `[x]` al terminar. Cada fase termina con algo que se puede probar. No pasar a la siguiente con la anterior rota.
 
 ## Fase 0 — Preparación
-- [ ] **Decidir acceso a datos: Prisma o `mysql2` con SQL.** Registrar la decisión en `memory.md`.
+- [x] **Decidir acceso a datos: Prisma o `mysql2` con SQL.** Registrar la decisión en `memory.md`. → Prisma 7.10.
+- [x] Escribir `docs/guia-prisma.md` (conexión, esquema, migraciones, consultas, transacciones).
+- [ ] Subir el repositorio a GitHub (rama `main` + rama por fase).
 - [ ] Crear repositorio con `apps/web`, `apps/api` y `docs/` (copiar estos documentos).
 - [ ] `apps/api`: Express, estructura de carpetas, middleware de errores, Zod, `.env.example`.
 - [ ] `apps/web`: Next.js (App Router, JavaScript), Tailwind, fuentes Literata y Public Sans, tokens de `design.md`.
