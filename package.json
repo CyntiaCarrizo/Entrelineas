@@ -1,0 +1,19 @@
+{
+  "name": "entrelineas",
+  "private": true,
+  "description": "Librería de barrio con catálogo web, pedidos por WhatsApp, Mercado Pago, mostrador y caja. Proyecto de portfolio.",
+  "workspaces": [
+    "apps/api",
+    "apps/web",
+    "docs/pdf"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
+    "test": "npm test -w apps/api",
+    "docs:pdf": "npm run pdf -w docs/pdf"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

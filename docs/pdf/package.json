@@ -1,0 +1,15 @@
+{
+  "name": "entrelineas-docs-pdf",
+  "version": "1.0.0",
+  "scripts": {
+    "pdf": "node generar-pdf.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Generador del PDF de documentación de Entrelíneas",
+  "dependencies": {
+    "marked": "^12.0.2"
+  },
+  "private": true
+}
