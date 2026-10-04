@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+/* Tokens de docs/design.md, sección 8 */
+@theme {
+  --color-papel: #F8F8F5;
+  --color-blanco: #FFFFFF;
+  --color-tinta: #1A2333;
+  --color-grafito: #5B6170;
+  --color-tela: #1F4A3D;
+  --color-ocre: #B07D24;
+  --color-linea: #DEDCD5;
+  --color-error: #A3332D;
+
+  --font-serif: var(--font-literata), Georgia, serif;
+  --font-sans: var(--font-public-sans), system-ui, sans-serif;
+
+  --radius-campo: 4px;
+  --radius-panel: 8px;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-papel);
+    color: var(--color-tinta);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  /* Foco siempre visible (docs/rules.md, accesibilidad) */
+  :focus-visible {
+    outline: 2px solid var(--color-tela);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

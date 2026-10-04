@@ -2,7 +2,7 @@
 
 Esta guía explica Prisma desde cero y con ejemplos de este proyecto: cómo se conecta a MySQL, cómo se escribe el esquema, cómo se consultan y modifican datos, y los conceptos que hay que tener claros para no romper el dinero ni el stock. Está pensada para leerse de corrido la primera vez y después usarse como consulta.
 
-Versión usada: **Prisma ORM 7.10** (la última estable al empezar el proyecto) con MySQL.
+Versión usada: **Prisma ORM 7.10** (la última estable al empezar el proyecto) con MySQL 9.3 y Node.js 24.
 
 ## 1. Qué es Prisma y qué problema resuelve
 
@@ -69,8 +69,10 @@ MySQL necesita cinco datos para aceptar una conexión: servidor, puerto, usuario
 
 ```
 mysql://USUARIO:CONTRASEÑA@SERVIDOR:PUERTO/BASE
-mysql://entrelineas:clave-segura@localhost:3306/entrelineas
+mysql://entrelineas:clave-segura@localhost:3306/entrelineas?allowPublicKeyRetrieval=true
 ```
+
+Lo que va después del `?` son **opciones** de la conexión. `allowPublicKeyRetrieval=true` hace falta con MySQL 8 y 9: el método de autenticación por defecto (`caching_sha2_password`) necesita la clave pública del servidor, y sin esta opción el driver no la pide y la conexión falla (en Prisma aparece como `pool timeout`). En local es seguro, porque la conexión no sale de la máquina. En la demo se va a usar una conexión con SSL.
 
 Si la contraseña tiene caracteres especiales (`@`, `:`, `/`, `#`), hay que codificarlos (`@` se escribe `%40`), porque si no rompen la URL.
 
@@ -78,22 +80,31 @@ Esa URL va en el archivo `.env` de `apps/api`, que **nunca se sube a Git** (est�
 
 ```bash
 # apps/api/.env.example
-DATABASE_URL="mysql://usuario:contraseña@localhost:3306/entrelineas"
+DATABASE_URL="mysql://entrelineas:contraseña@localhost:3306/entrelineas?allowPublicKeyRetrieval=true"
+SHADOW_DATABASE_URL="mysql://entrelineas:contraseña@localhost:3306/entrelineas_shadow?allowPublicKeyRetrieval=true"
+TEST_DATABASE_URL="mysql://entrelineas:contraseña@localhost:3306/entrelineas_test?allowPublicKeyRetrieval=true"
 ```
+
+Son tres bases: la de desarrollo, la **sombra**, que Prisma usa para las migraciones (sección 6.3), y la de **tests**, que se puede vaciar sin miedo.
 
 En el deploy (Railway o Render), la misma variable se carga en el panel del proveedor.
 
 ### 3.2 Usuario propio para la aplicación
 
-No conviene que la aplicación use `root`. Se crea un usuario solo para el proyecto:
+No conviene que la aplicación use `root`. Se crea un usuario solo para el proyecto, con permisos **únicamente sobre sus tres bases**:
 
 ```sql
-CREATE DATABASE entrelineas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE entrelineas        CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE entrelineas_shadow CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE entrelineas_test   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE USER 'entrelineas'@'localhost' IDENTIFIED BY 'clave-segura';
-GRANT ALL PRIVILEGES ON entrelineas.* TO 'entrelineas'@'localhost';
--- Para la base "sombra" de las migraciones (sección 6.3):
-GRANT CREATE, DROP ON *.* TO 'entrelineas'@'localhost';
+GRANT ALL PRIVILEGES ON entrelineas.*        TO 'entrelineas'@'localhost';
+GRANT ALL PRIVILEGES ON entrelineas_shadow.* TO 'entrelineas'@'localhost';
+GRANT ALL PRIVILEGES ON entrelineas_test.*   TO 'entrelineas'@'localhost';
 ```
+
+Esto sigue el **principio de mínimo privilegio**: si la aplicación tuviera un error o una vulnerabilidad, no podría tocar otras bases del mismo servidor. Por eso no se le da el permiso global `CREATE, DROP ON *.*`, que Prisma necesitaría para crear la base sombra por su cuenta. En cambio, la creamos nosotros y se la indicamos en la configuración.
 
 `utf8mb4` permite guardar cualquier carácter (tildes, eñes, emojis en un nombre de cliente). Es importante para una librería en español.
 
@@ -107,13 +118,17 @@ import { defineConfig } from 'prisma/config';
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: { path: 'prisma/migrations' },
-  datasource: { url: process.env.DATABASE_URL },
+  datasource: {
+    url: process.env.DATABASE_URL,
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
+  },
 });
 ```
 
 - `import 'dotenv/config'` lee el archivo `.env` y carga sus valores en `process.env`.
 - Este archivo lo usa **solo la CLI** (para migrar, generar, abrir Studio). La aplicación en ejecución se conecta por su cuenta (siguiente punto).
 - A partir de Prisma 7.10 el archivo se llama `prisma7.config.ts` para no confundirse con el formato de Prisma 8.
+- Es el único archivo TypeScript que escribimos en el proyecto. Prisma lo lee por su cuenta, así que no hace falta saber TypeScript: es solo un objeto de configuración.
 
 ### 3.4 Un solo cliente para toda la API
 
@@ -122,14 +137,19 @@ Crear un `PrismaClient` abre un **pool de conexiones**: un grupo de conexiones a
 ```js
 // apps/api/src/db/prisma.js
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PrismaClient } from '../generated/prisma/client.js';
+import { PrismaClient } from '../generated/prisma/client.ts';
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL);
 
 export const prisma = new PrismaClient({ adapter });
 ```
 
-Al apagar el servidor se cierra el pool con `await prisma.$disconnect()`, para no dejar conexiones colgadas.
+Dos detalles de este archivo:
+
+- El cliente generado está en TypeScript (`client.ts`). Node.js 24 lo ejecuta directamente: le quita los tipos al cargarlo (*type stripping*), sin compilar nada. Por eso el proyecto exige Node 24; con Node 20 este import falla.
+- `PrismaMariaDb` recibe la misma `DATABASE_URL` que usa la CLI, así hay una sola fuente de verdad para la conexión.
+
+Al apagar el servidor se cierra el pool con `await prisma.$disconnect()`, para no dejar conexiones colgadas. En el proyecto lo hace `src/server.js` cuando recibe `Ctrl+C`.
 
 ### 3.5 Probar que conecta
 
@@ -312,7 +332,7 @@ La tabla `_prisma_migrations` (la crea Prisma en la base) guarda qué migracione
 
 ### 6.3 La base "sombra"
 
-`migrate dev` crea por un momento una base temporal, la **base sombra** (*shadow database*), aplica ahí todas las migraciones y compara para detectar diferencias. Por eso el usuario de MySQL necesita permiso para crear y borrar bases (sección 3.2). Esta base no se usa en producción.
+`migrate dev` usa una base temporal, la **base sombra** (*shadow database*). La vacía, aplica ahí todas las migraciones desde cero y compara el resultado con el esquema para detectar diferencias o migraciones editadas a mano. En el proyecto es `entrelineas_shadow` (sección 3.2). **Nunca guardes datos ahí**, porque Prisma la borra en cada `migrate dev`. Esta base no se usa en producción.
 
 ### 6.4 Los tres comandos que importan
 
@@ -537,11 +557,15 @@ export function obtenerLibroPublicoPorSlug(slug) {
 
 Para las transacciones, los repositorios reciben `tx` como parámetro opcional (`db = prisma`), así el servicio puede encadenar varias operaciones dentro de un mismo `$transaction`.
 
-## 13. Datos de ejemplo (seed)
+## 13. Tests contra la base de prueba
+
+Los tests de la API (Vitest + Supertest) usan la base `entrelineas_test`. Antes de cada archivo de tests, `test/setup.js` reemplaza `DATABASE_URL` por `TEST_DATABASE_URL`. Como `src/db/prisma.js` lee esa variable recién cuando se carga, todo el código (repositorios incluidos) queda apuntando a la base de prueba sin cambiar una línea. En la Fase 1, cuando haya tablas, se suma un script que aplica las migraciones a esa base antes de correr los tests.
+
+## 14. Datos de ejemplo (seed)
 
 El **seed** es un script que llena la base con datos de prueba: los 2 usuarios, los 8 géneros y los 60 libros de la Fase 1. Se registra en `prisma7.config.ts` (`migrations.seed`) y se ejecuta con `npx prisma db seed`. Desde Prisma 7, `migrate dev` y `migrate reset` ya no lo corren solos: después de rehacer la base hay que ejecutarlo a mano. Usa `upsert` (crear o actualizar), así se puede correr varias veces sin duplicar datos.
 
-## 14. Prisma Studio
+## 15. Prisma Studio
 
 ```bash
 npx prisma studio
@@ -549,7 +573,7 @@ npx prisma studio
 
 Abre en el navegador una tabla editable de cada modelo. Sirve para revisar qué guardó un endpoint o cargar un dato a mano en desarrollo. No se usa contra la base de la demo.
 
-## 15. Resumen de comandos
+## 16. Resumen de comandos
 
 | Comando | Para qué |
 |---|---|
@@ -561,7 +585,7 @@ Abre en el navegador una tabla editable de cada modelo. Sirve para revisar qué 
 | `npx prisma migrate reset` | Rehacer la base de desarrollo desde cero (borra todo) |
 | `npx prisma format` | Ordenar y validar `schema.prisma` |
 
-## 16. Glosario
+## 17. Glosario
 
 | Término | Definición |
 |---|---|
@@ -578,3 +602,5 @@ Abre en el navegador una tabla editable de cada modelo. Sirve para revisar qué 
 | **Idempotente** | Operación que da el mismo resultado si se ejecuta una o varias veces |
 | **Seed** | Script que carga datos de ejemplo |
 | **Base sombra** | Base temporal que usa `migrate dev` para comparar estados |
+| **Mínimo privilegio** | Darle a cada usuario solo los permisos que necesita |
+| **Type stripping** | Función de Node 24 que ejecuta TypeScript quitando los tipos al cargar el archivo |

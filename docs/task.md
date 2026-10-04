@@ -5,13 +5,14 @@ Marcar con `[x]` al terminar. Cada fase termina con algo que se puede probar. No
 ## Fase 0 — Preparación
 - [x] **Decidir acceso a datos: Prisma o `mysql2` con SQL.** Registrar la decisión en `memory.md`. → Prisma 7.10.
 - [x] Escribir `docs/guia-prisma.md` (conexión, esquema, migraciones, consultas, transacciones).
-- [ ] Subir el repositorio a GitHub (rama `main` + rama por fase).
-- [ ] Crear repositorio con `apps/web`, `apps/api` y `docs/` (copiar estos documentos).
-- [ ] `apps/api`: Express, estructura de carpetas, middleware de errores, Zod, `.env.example`.
-- [ ] `apps/web`: Next.js (App Router, JavaScript), Tailwind, fuentes Literata y Public Sans, tokens de `design.md`.
-- [ ] Rewrite de `/api/*` hacia Express en `next.config.js`.
-- [ ] MySQL local y conexión desde la API.
-- [ ] Configurar Vitest y Supertest con base de prueba.
+- [x] Subir el repositorio a GitHub (rama `main` + rama por fase).
+- [x] Actualizar a Node.js 24 LTS (necesario para el cliente de Prisma 7).
+- [x] Crear repositorio con `apps/web`, `apps/api` y `docs/` (copiar estos documentos).
+- [x] `apps/api`: Express, estructura de carpetas, middleware de errores, Zod, `.env.example`.
+- [x] `apps/web`: Next.js (App Router, JavaScript), Tailwind, fuentes Literata y Public Sans, tokens de `design.md`.
+- [x] Rewrite de `/api/*` hacia Express en `next.config.js`.
+- [x] MySQL local y conexión desde la API.
+- [x] Configurar Vitest y Supertest con base de prueba.
 
 ## Fase 1 — Base de datos y usuarios
 - [ ] Crear todas las tablas de `arquitectura.md` (migraciones).

@@ -1,0 +1,12 @@
+// Esquema de la base de datos de Entrelíneas.
+// Los modelos (tablas) se agregan en la Fase 1, según docs/arquitectura.md.
+// Explicación de cada parte en docs/guia-prisma.md.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}

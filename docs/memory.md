@@ -27,6 +27,9 @@ Contexto acumulado para retomar el trabajo (persona o asistente de IA). Leer al 
 | Backend | Express + MySQL | Stack ya conocido |
 | Web y API | Mismo dominio vía rewrites de Next | Cookies de sesión sin CORS entre dominios |
 | Lenguaje | JavaScript | Coherencia con proyectos anteriores |
+| Node.js | 24 LTS (`engines` en la raíz) | Node 20 quedó sin soporte (abril 2026) y Node 24 ejecuta el cliente TypeScript de Prisma 7 sin compilar |
+| Bases MySQL | `entrelineas`, `entrelineas_shadow` y `entrelineas_test`, con el usuario `entrelineas` que solo tiene permisos sobre esas tres | Mínimo privilegio: en el mismo servidor hay otras bases de otros proyectos |
+| Monorepo | npm workspaces (`apps/api`, `apps/web`, `docs/pdf`) | Un solo `npm install` y un solo lockfile |
 | Facturas | MVP: carga manual de PDF. Etapa 2: ARCA en homologación | Terminar el MVP primero |
 | QR y Point de Mercado Pago | MVP: registro manual. Etapa 2: integración | Reutilizar la lógica del webhook después |
 | Diseño | Paleta papel, tinta, verde tela y ocre; Literata + Public Sans; catálogo como estante | Identidad propia de librería |
@@ -37,20 +40,23 @@ Contexto acumulado para retomar el trabajo (persona o asistente de IA). Leer al 
 
 ## Decisiones pendientes
 
-- **Versión de Node.js:** Node 20 (instalado) quedó sin soporte en abril de 2026, y el cliente de Prisma 7 se genera en TypeScript, que Node 20 no ejecuta directamente. Propuesta: pasar a Node 24 LTS. Confirmar al instalar dependencias.
 - **Formato del Excel de la librería:** qué columnas tiene, cómo vienen los precios y si incluye stock. Ajustar el mapeo automático cuando se conozca.
 
 ## Notas técnicas para recordar
 
 - Mercado Pago: nunca confiar en el cuerpo del webhook ni en las `back_urls`; consultar el pago por id.
+- MySQL 9 + driver `mariadb`: las URLs llevan `?allowPublicKeyRetrieval=true`; sin eso Prisma muestra `pool timeout`.
+- El puerto 4000 lo usa también otro proyecto local (bonhomia). Si está corriendo, levantar la API con `PORT=4100` y la web con `API_URL=http://localhost:4100`.
+- npm 11 bloquea los scripts de instalación: los de `prisma`, `@prisma/engines` y `unrs-resolver` están aprobados en `allowScripts` del `package.json` raíz. Si se actualiza Prisma, aprobar la nueva versión con `npm approve-scripts`.
+- Disco C: muy justo de espacio: después de instalar dependencias, correr `npm cache clean --force`.
 - Para probar el webhook en local hace falta un túnel; la URL cambia en cada ejecución del plan gratuito, así que va en `.env`.
 - ARCA (etapa 2): el WSASS se adhiere con la clave fiscal de persona física desde el Administrador de Relaciones; el token del WSAA se cachea hasta su vencimiento.
 - Revisar la documentación vigente de Mercado Pago y de ARCA al empezar cada integración: sus APIs cambian.
 
 ## Estado
 
-- Fase actual: **0 — Preparación**.
-- Última actualización: 2026-10-04 — documentos movidos a `docs/`, repositorio Git creado, decisión de Prisma y guía. Instalación de dependencias frenada por falta de espacio en disco.
+- Fase actual: **0 — Preparación, completa**. Próxima: Fase 1 (rama `feat/fase-1-base-de-datos`).
+- Última actualización: 2026-10-04 — Fase 0 terminada: API y web funcionando, conexión a MySQL, tests pasando y repositorio en GitHub.
 
 ## Registro de sesiones
 
@@ -58,3 +64,4 @@ Contexto acumulado para retomar el trabajo (persona o asistente de IA). Leer al 
 
 - 2026-10-04 — Lectura de documentos, PDF de documentación, `bitacora.md` — decidir acceso a datos.
 - 2026-10-04 — Prisma elegido, `guia-prisma.md`, Git con rama `feat/fase-0-preparacion`, Next.js creado en `apps/web` — liberar disco, instalar dependencias, contraseña de MySQL, repositorio en GitHub.
+- 2026-10-04 — Espacio liberado, Node 24, bases y usuario MySQL, API Express + Prisma, web Next.js con tokens, rewrite, Vitest (6 tests), push a GitHub — empezar la Fase 1.
