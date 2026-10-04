@@ -2,7 +2,14 @@
 
 Librería de barrio con catálogo web, pedidos por WhatsApp, pagos con Mercado Pago, mostrador con lector de ISBN y caja diaria. Proyecto de portfolio.
 
-> En construcción. El avance y las decisiones están en [`docs/bitacora.md`](docs/bitacora.md) y en el PDF [`docs/pdf/Entrelineas-Documentacion.pdf`](docs/pdf/Entrelineas-Documentacion.pdf).
+> En construcción. El avance y las decisiones están en [`docs/bitacora.md`](docs/bitacora.md).
+
+**Documentación en PDF** ([`docs/pdf/`](docs/pdf/)), generada con `npm run docs:pdf`:
+
+| PDF | Contenido |
+|---|---|
+| [Documentación base](docs/pdf/Entrelineas-00-Documentacion-base.pdf) | PRD, arquitectura, diseño, reglas, tareas, memoria y bitácora |
+| [Fase 0 — Preparación](docs/pdf/Entrelineas-Fase-0-Preparacion.pdf) | Informe de la fase y anexo "Prisma explicado" |
 
 ## Stack
 

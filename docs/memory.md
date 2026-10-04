@@ -29,6 +29,7 @@ Contexto acumulado para retomar el trabajo (persona o asistente de IA). Leer al 
 | Lenguaje | JavaScript | Coherencia con proyectos anteriores |
 | Node.js | 24 LTS (`engines` en la raíz) | Node 20 quedó sin soporte (abril 2026) y Node 24 ejecuta el cliente TypeScript de Prisma 7 sin compilar |
 | Bases MySQL | `entrelineas`, `entrelineas_shadow` y `entrelineas_test`, con el usuario `entrelineas` que solo tiene permisos sobre esas tres | Mínimo privilegio: en el mismo servidor hay otras bases de otros proyectos |
+| Documentación en PDF | Un PDF de documentación base + un PDF por fase completada (`docs/fases/` → `docs/pdf/`) | Cada entrega queda cerrada y se puede leer por separado |
 | Monorepo | npm workspaces (`apps/api`, `apps/web`, `docs/pdf`) | Un solo `npm install` y un solo lockfile |
 | Facturas | MVP: carga manual de PDF. Etapa 2: ARCA en homologación | Terminar el MVP primero |
 | QR y Point de Mercado Pago | MVP: registro manual. Etapa 2: integración | Reutilizar la lógica del webhook después |

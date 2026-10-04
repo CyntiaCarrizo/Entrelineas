@@ -1,6 +1,9 @@
-// Une la documentación del proyecto en un único PDF.
-// Uso: npm run pdf   (desde docs/pdf/, o npm run docs:pdf desde la raíz)
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+// Genera los PDF de la documentación del proyecto:
+//   - Documentación base (PRD, arquitectura, diseño, reglas, tareas, memoria, bitácora)
+//   - Un PDF por cada fase completada (informe de la fase + anexos explicativos)
+// Uso (desde la raíz):  npm run docs:pdf             → genera todos
+//                       npm run docs:pdf -- fase-0   → genera solo los que coinciden
+import { readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -9,20 +12,34 @@ import { Marked } from 'marked';
 const aqui = dirname(fileURLToPath(import.meta.url));
 const raiz = resolve(aqui, '..');
 
-// Orden de los capítulos. Si un archivo no existe se avisa y se omite.
-const capitulos = [
-  { archivo: 'bitacora.md', titulo: 'Bitácora del proyecto' },
-  { archivo: 'PRD.md', titulo: 'PRD — Requisitos del producto' },
-  { archivo: 'arquitectura.md', titulo: 'Arquitectura' },
-  { archivo: 'guia-prisma.md', titulo: 'Arquitectura — Anexo: Prisma explicado' },
-  { archivo: 'design.md', titulo: 'Diseño' },
-  { archivo: 'rules.md', titulo: 'Reglas del proyecto' },
-  { archivo: 'task.md', titulo: 'Tareas' },
-  { archivo: 'memory.md', titulo: 'Memoria del proyecto' },
+// Cada documento es un PDF. Para cerrar una fase nueva, agregar su entrada acá.
+const documentos = [
+  {
+    id: 'base',
+    salida: 'Entrelineas-00-Documentacion-base',
+    subtitulo: 'Documentación base del proyecto',
+    detalle: 'Requisitos, arquitectura, diseño, reglas, tareas y bitácora',
+    capitulos: [
+      { archivo: 'PRD.md', titulo: 'PRD — Requisitos del producto' },
+      { archivo: 'arquitectura.md', titulo: 'Arquitectura' },
+      { archivo: 'design.md', titulo: 'Diseño' },
+      { archivo: 'rules.md', titulo: 'Reglas del proyecto' },
+      { archivo: 'task.md', titulo: 'Tareas' },
+      { archivo: 'memory.md', titulo: 'Memoria del proyecto' },
+      { archivo: 'bitacora.md', titulo: 'Bitácora del proyecto' },
+    ],
+  },
+  {
+    id: 'fase-0',
+    salida: 'Entrelineas-Fase-0-Preparacion',
+    subtitulo: 'Fase 0 — Preparación',
+    detalle: 'Repositorio, API, web, base de datos y tests',
+    capitulos: [
+      { archivo: 'fases/fase-0-preparacion.md', titulo: 'Fase 0 — Preparación' },
+      { archivo: 'guia-prisma.md', titulo: 'Anexo — Prisma explicado' },
+    ],
+  },
 ];
-
-const salidaHtml = resolve(aqui, 'Entrelineas-Documentacion.html');
-const salidaPdf = resolve(aqui, 'Entrelineas-Documentacion.pdf');
 
 const slugify = (texto) =>
   texto
@@ -35,57 +52,61 @@ const slugify = (texto) =>
 
 const escapar = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-const indice = [];
-let cuerpo = '';
+function generar({ salida, subtitulo, detalle, capitulos }) {
+  const salidaHtml = resolve(aqui, `${salida}.html`);
+  const salidaPdf = resolve(aqui, `${salida}.pdf`);
 
-capitulos.forEach(({ archivo, titulo }, n) => {
-  const ruta = resolve(raiz, archivo);
-  if (!existsSync(ruta)) {
-    console.warn(`Aviso: no existe ${archivo}, se omite.`);
-    return;
-  }
-  const prefijo = `c${n}`;
-  const entradas = [];
-  const marked = new Marked({ gfm: true });
-  marked.use({
-    renderer: {
-      heading(texto, nivel) {
-        // El h1 de cada archivo se reemplaza por el título del capítulo.
-        if (nivel === 1) return '';
-        const id = `${prefijo}-${slugify(texto)}`;
-        if (nivel === 2) entradas.push({ id, texto });
-        return `<h${nivel} id="${id}">${texto}</h${nivel}>\n`;
+  const indice = [];
+  let cuerpo = '';
+
+  capitulos.forEach(({ archivo, titulo }, n) => {
+    const ruta = resolve(raiz, archivo);
+    if (!existsSync(ruta)) {
+      console.warn(`Aviso: no existe ${archivo}, se omite.`);
+      return;
+    }
+    const prefijo = `c${n}`;
+    const entradas = [];
+    const marked = new Marked({ gfm: true });
+    marked.use({
+      renderer: {
+        heading(texto, nivel) {
+          // El h1 de cada archivo se reemplaza por el título del capítulo.
+          if (nivel === 1) return '';
+          const id = `${prefijo}-${slugify(texto)}`;
+          if (nivel === 2) entradas.push({ id, texto });
+          return `<h${nivel} id="${id}">${texto}</h${nivel}>\n`;
+        },
       },
-    },
+    });
+    const md = readFileSync(ruta, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+    const html = marked.parse(md);
+    const idCap = `${prefijo}-capitulo`;
+    indice.push({ id: idCap, titulo, entradas });
+    cuerpo += `<section class="capitulo">
+    <p class="fuente">docs/${escapar(archivo)}</p>
+    <h1 id="${idCap}">${titulo}</h1>
+    ${html}
+  </section>\n`;
   });
-  const md = readFileSync(ruta, 'utf8').replace(/<!--[\s\S]*?-->/g, '');
-  const html = marked.parse(md);
-  const idCap = `${prefijo}-capitulo`;
-  indice.push({ id: idCap, titulo, entradas });
-  cuerpo += `<section class="capitulo">
-  <p class="fuente">docs/${escapar(archivo)}</p>
-  <h1 id="${idCap}">${titulo}</h1>
-  ${html}
-</section>\n`;
-});
 
-const fecha = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const fecha = new Date().toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-const htmlIndice = indice
-  .map(
-    (c) => `<li><a href="#${c.id}">${c.titulo}</a>${
-      c.entradas.length
-        ? `<ol>${c.entradas.map((e) => `<li><a href="#${e.id}">${e.texto}</a></li>`).join('')}</ol>`
-        : ''
-    }</li>`
-  )
-  .join('\n');
+  const htmlIndice = indice
+    .map(
+      (c) => `<li><a href="#${c.id}">${c.titulo}</a>${
+        c.entradas.length
+          ? `<ol>${c.entradas.map((e) => `<li><a href="#${e.id}">${e.texto}</a></li>`).join('')}</ol>`
+          : ''
+      }</li>`
+    )
+    .join('\n');
 
-const html = `<!doctype html>
+  const html = `<!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title>Entrelíneas — Documentación del proyecto</title>
+<title>Entrelíneas — ${subtitulo}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -150,8 +171,8 @@ const html = `<!doctype html>
 <section class="portada">
   <p class="marca">Entrelíneas</p>
   <div class="estante"></div>
-  <p class="sub">Documentación del proyecto</p>
-  <p class="sub" style="color:var(--tinta-suave)">Catálogo web, pedidos por WhatsApp, Mercado Pago, mostrador y caja</p>
+  <p class="sub">${subtitulo}</p>
+  <p class="sub" style="color:var(--tinta-suave)">${detalle}</p>
   <p class="meta">Proyecto de portfolio · Generado el ${fecha}</p>
 </section>
 <nav class="indice">
@@ -162,7 +183,20 @@ ${cuerpo}
 </body>
 </html>`;
 
-writeFileSync(salidaHtml, html);
+  writeFileSync(salidaHtml, html);
+
+  execFileSync(navegador, [
+    '--headless',
+    '--disable-gpu',
+    '--no-pdf-header-footer',
+    '--virtual-time-budget=15000',
+    `--print-to-pdf=${salidaPdf}`,
+    pathToFileURL(salidaHtml).href,
+  ], { stdio: 'ignore' });
+
+  rmSync(salidaHtml);
+  console.log('PDF generado:', salidaPdf);
+}
 
 const navegadores = [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
@@ -171,17 +205,14 @@ const navegadores = [
 ];
 const navegador = navegadores.find(existsSync);
 if (!navegador) {
-  console.error('No se encontró Edge ni Chrome. El HTML quedó en', salidaHtml);
+  console.error('No se encontró Edge ni Chrome para imprimir el PDF.');
   process.exit(1);
 }
 
-execFileSync(navegador, [
-  '--headless',
-  '--disable-gpu',
-  '--no-pdf-header-footer',
-  '--virtual-time-budget=15000',
-  `--print-to-pdf=${salidaPdf}`,
-  pathToFileURL(salidaHtml).href,
-], { stdio: 'ignore' });
-
-console.log('PDF generado:', salidaPdf);
+const filtro = process.argv[2];
+const elegidos = filtro ? documentos.filter((d) => d.id.includes(filtro)) : documentos;
+if (!elegidos.length) {
+  console.error(`No hay documentos que coincidan con "${filtro}". Opciones: ${documentos.map((d) => d.id).join(', ')}`);
+  process.exit(1);
+}
+elegidos.forEach(generar);

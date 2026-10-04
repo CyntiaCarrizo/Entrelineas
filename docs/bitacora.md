@@ -1,6 +1,6 @@
 # Bitácora del proyecto
 
-Registro de avance, decisiones y observaciones. Se actualiza en cada sesión de trabajo y se regenera el PDF con `npm run docs:pdf` desde la raíz del repositorio.
+Registro de avance, decisiones y observaciones. Se actualiza en cada sesión de trabajo. Los PDF se regeneran con `npm run docs:pdf` desde la raíz del repositorio: uno con la documentación base y uno por cada fase completada.
 
 ## Estado actual
 
@@ -129,3 +129,11 @@ Registro de avance, decisiones y observaciones. Se actualiza en cada sesión de 
 
 - Revisar y aprobar el *pull request* de `feat/fase-0-preparacion` a `main` en GitHub.
 - Fase 1: modelos de Prisma para todas las tablas, primera migración, seed, login y roles.
+
+### 2026-10-04 — Un PDF por fase
+
+- La documentación se separa en un **PDF por fase completada**, en lugar de un único PDF que crece:
+  - `Entrelineas-00-Documentacion-base.pdf`: PRD, arquitectura, diseño, reglas, tareas, memoria y esta bitácora. Se regenera cuando cambian.
+  - `Entrelineas-Fase-0-Preparacion.pdf`: informe de la Fase 0 (qué se construyó, cómo funciona cada parte, problemas y soluciones, cómo probarlo) con el anexo "Prisma explicado".
+- Cada fase nueva suma su informe en `docs/fases/` y su entrada en `docs/pdf/generar-pdf.mjs`. Se puede generar uno solo con `npm run docs:pdf -- fase-1`.
+- Se quitó `Entrelineas-Documentacion.pdf`.
